@@ -1,11 +1,10 @@
 """
 Arquivo: TheShip/TheKey/users_models.py
 Descrição:
-    - Modelos de dados para gerenciamento de usuários no sistema.
-    - Usa SQLAlchemy para criar tabela de usuários, armazenando username e senha com hash seguro.
+    - Extensão do modelo de usuário para suportar roles (perfis de acesso).
 """
 
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -19,11 +18,13 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
+    role = Column(String, default="user")  # Ex.: "admin", "user"
+    is_active = Column(Boolean, default=True)
 
 """
 MELHORIAS FUTURAS:
-1. Incluir colunas como 'email', 'is_active', 'roles' para gerenciamento de permissões e perfis.
-2. Armazenar data de criação, último login, e logs de tentativa de acesso para auditoria.
-3. Implementar relacionamento com outras tabelas caso existam diferentes entidades de usuários.
-4. Adicionar salt e utilizar algoritmos como Argon2 em vez de bcrypt, se performance e segurança exigirem.
+1. Migrar de RBAC para ABAC, permitindo regras mais dinâmicas (por ex., acesso baseado em atributos).
+2. Incluir data de criação, último login, e logs detalhados para auditoria de atividades.
+3. Manter tabela separada de 'roles' e relacionar com usuários, para maior escalabilidade de perfis.
+4. Criar uma estrutura de permissões por módulo, definindo granularidade (ex.: CRUD do Vault).
 """
