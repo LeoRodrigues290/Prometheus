@@ -85,10 +85,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
-    """
-    Endpoint de login que recebe usuário/senha (OAuth2PasswordRequestForm).
-    Retorna token JWT se credenciais forem válidas.
-    """
+    print(f"Tentando login com username={form_data.username} e password={form_data.password}")
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(

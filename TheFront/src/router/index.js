@@ -5,13 +5,16 @@
  */
 
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '@/components/Login.vue'
-import SecureHome from '@/components/SecureHome.vue'
-import AdminPanel from '@/components/AdminPanel.vue'
-import QuantumKeyGen from '@/components/QuantumKeyGen.vue'
-import DarkDashboard from '@/components/DarkDashboard.vue'
+
+// Aqui estão os imports usando caminhos RELATIVOS
+import Login from '../components/Login.vue'
+import SecureHome from '../components/SecureHome.vue'
+import AdminPanel from '../components/AdminPanel.vue'
+import QuantumKeyGen from '../components/QuantumKeyGen.vue'
+import DarkDashboard from '../components/Dashboard.vue'
 
 function isAuthenticated() {
+  // Checa se existe token no localStorage
   return !!localStorage.getItem('jwt_token')
 }
 
@@ -69,8 +72,9 @@ export default router
 
 /*
 MELHORIAS FUTURAS:
-1. Usar decode do JWT (jwt-decode) para extrair role e user info, ao invés de localStorage estática.
-2. Criar rota para 'Vault' e outra para 'Logs (Kerberos)', caso queira um painel unificado.
-3. Adicionar animações de transição entre rotas (Vue transitions).
-4. Tratar 404 - rotas inexistentes com uma tela customizada.
+1. Caso queira usar '@/components/...' em vez de '../components/...',
+   configure o alias no vite.config.js e garanta que as pastas estejam corretas.
+2. Decodificar o token JWT (com 'jwt-decode') para ler role de forma dinâmica, em vez de localStorage.
+3. Adicionar rota de 404 caso o usuário tente acessar algo inexistente.
+4. Criar rota de logout separada, se desejar redirecionamento e limpeza de dados.
 */

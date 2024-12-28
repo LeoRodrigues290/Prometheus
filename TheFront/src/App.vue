@@ -2,7 +2,7 @@
   <div id="app" class="min-h-screen flex flex-col">
     <!-- Barra Superior -->
     <header class="bg-dark-surface text-white py-4 px-6 flex items-center">
-      <img src="@/assets/logo.svg" alt="Logo" class="h-8 mr-4" />
+      <img src="./assets/logo.svg" alt="Logo" class="h-8 mr-4" />
       <h1 class="text-xl font-bold uppercase">Prometheus Security</h1>
     </header>
 
