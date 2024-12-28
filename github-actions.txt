@@ -1,0 +1,32 @@
+.github/workflows/ci.yml
+
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest qiskit fastapi sqlalchemy pydantic cryptography
+      - name: Run tests
+        run: |
+          pytest --maxfail=1 --disable-warnings
+
+"""
+MELHORIAS FUTURAS:
+1. Adicionar estágios de build de Docker e publicação em registries privados (ECR, Docker Hub, etc.).
+2. Configurar security scans (Dependabot, Snyk) para detectar vulnerabilidades em dependências.
+3. Implementar linting (Flake8, Black) e análise estática de código (Bandit) para checar segurança e estilo.
+4. Incluir testes de performance automatizados (ex.: k6, locust) e anexar relatórios ao pipeline.
+"""

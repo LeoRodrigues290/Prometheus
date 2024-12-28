@@ -1,0 +1,49 @@
+# Arquivo: TheEnd/docker-compose.yml
+# Descrição: Orquestra os containers de back-end e front-end em desenvolvimento.
+
+version: "3.8"
+services:
+  prometheus_backend:
+    build:
+      context: .
+      dockerfile: TheEnd/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./TheShip:/app/TheShip
+    environment:
+      - DATABASE_URL=sqlite:///./boy_vault.db
+    depends_on:
+      - prometheus_db
+
+  prometheus_frontend:
+    build:
+      context: .
+      dockerfile: TheEnd/Dockerfile.front
+    ports:
+      - "8080:80"
+    depends_on:
+      - prometheus_backend
+
+  prometheus_db:
+    image: postgres:15-alpine
+    container_name: "prometheus_db"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=adminpass
+      - POSTGRES_DB=prometheus_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+
+#
+# MELHORIAS FUTURAS:
+# 1. Separar cada serviço em seu próprio arquivo de compose, caso seja preciso escalar independentemente.
+# 2. Integrar com Docker Swarm ou Kubernetes para ambientes de produção.
+# 3. Adicionar serviços de monitoramento (ex.: Prometheus & Grafana) para métricas e alertas.
+# 4. Criar redes específicas para isolar comunicação interna (ex.: backend_net).
+#
