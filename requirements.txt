@@ -1,0 +1,16 @@
+# requirements.txt
+
+# Biblioteca principal de computação quântica
+qiskit==0.43.2
+
+# Framework web (aqui optamos pelo FastAPI como exemplo moderno e escalável)
+fastapi==0.103.2
+
+# Servidor ASGI para rodar o FastAPI
+uvicorn==0.23.2
+
+# Criptografia adicional (pode ser usada para armazenar chaves, senhas, etc.)
+cryptography==41.0.3
+
+# Outras bibliotecas que podem ser úteis
+pydantic==2.2.2
