@@ -1,6 +1,8 @@
 """
 Arquivo: TheShip/ThePyramid/quantum_rng.py
-Descrição: Implementa funções para gerar números aleatórios usando Qiskit.
+Descrição:
+    - Implementa funções para geração de números aleatórios usando Qiskit.
+    - Exemplo simples de circuito quântico com portas Hadamard e medição.
 """
 
 import qiskit
@@ -8,38 +10,36 @@ from qiskit import Aer, execute
 
 def generate_quantum_random_number(num_bits=128):
     """
-    Gera um número aleatório com base no estado quântico de um circuito.
-    :param num_bits: Quantidade de bits aleatórios que desejamos.
-    :return: Um inteiro aleatório de tamanho num_bits.
+    Gera um número aleatório com base no estado quântico de um circuito Qiskit.
+    :param num_bits: Quantidade de bits a serem gerados.
+    :return: Um inteiro aleatório equivalente ao resultado medido dos qubits.
     """
-    # Cria um circuito quântico simples
     circuit = qiskit.QuantumCircuit(num_bits, num_bits)
 
-    # Aplica portas Hadamard para colocar os qubits em superposição
+    # Coloca cada qubit em superposição usando portas Hadamard
     for i in range(num_bits):
         circuit.h(i)
 
-    # Faz a medição
+    # Mede todos os qubits
     circuit.measure(range(num_bits), range(num_bits))
 
-    # Executa o circuito no simulador local
+    # Usa o simulador local para executar 1 shot
     simulator = Aer.get_backend('qasm_simulator')
     job = execute(circuit, simulator, shots=1)
     result = job.result()
     counts = result.get_counts(circuit)
 
-    # Extraímos a única chave de contagem obtida (pois shots=1)
+    # Extrai a única medição (chave do dicionário 'counts')
     measured_str = list(counts.keys())[0]
 
     # Converte a string binária em inteiro
     random_number = int(measured_str, 2)
-
     return random_number
 
 """
 MELHORIAS FUTURAS:
-1. Integrar a execução em um backend quântico real da IBM Quantum para geração de números ainda mais seguros.
-2. Implementar protocolos de QKD (Quantum Key Distribution) no futuro, possibilitando troca segura de chaves.
-3. Adicionar mecanismos de reintento ou redundância (repetir medições e combinar resultados) para reduzir ruídos em backends reais.
-4. Criar testes unitários que validem a aleatoriedade gerada (usando testes estatísticos como NIST ou Dieharder).
+1. Integrar com um backend real da IBM Quantum para gerar verdadeira aleatoriedade quântica.
+2. Adicionar testes estatísticos (NIST, Dieharder) para validar a qualidade dos bits gerados.
+3. Expandir para protocolos completos de QKD (Quantum Key Distribution) em comunicações seguras.
+4. Implementar redundância (executar circuito várias vezes e combinar resultados) para reduzir ruídos em hardware real.
 """

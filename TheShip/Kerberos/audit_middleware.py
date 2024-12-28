@@ -1,39 +1,39 @@
 """
 Arquivo: TheShip/Kerberos/audit_middleware.py
 Descrição:
-    - Implementa um middleware de FastAPI para registrar cada requisição no sistema de auditoria.
+    - Middleware de FastAPI que intercepta requisições e registra logs de cada chamada.
+    - Exemplo simples que chama log_action() após a resposta ser gerada.
 """
+
 from starlette.requests import Request
 from starlette.responses import Response
 from .audit_service import log_action
 
 async def audit_middleware(request: Request, call_next):
     """
-    Middleware que intercepta a requisição, processa e registra no Kerberos.
+    Intercepta a requisição antes de ser processada.
+    Registra informações de método, path e status da resposta.
     """
-    # Antes da chamada
     method = request.method
     url = request.url.path
 
     response: Response = await call_next(request)
-
-    # Após a chamada
     status_code = response.status_code
 
-    # Registra no Kerberos (pode-se injetar DB session se precisar)
+    details = f"Method={method}, Path={url}, Status={status_code}"
     try:
-        details = f"Method: {method}, Path: {url}, Status: {status_code}"
-        log_action("REQUEST", details)  # Exemplo de log
+        # Chama a função do Kerberos para logar a ação no banco
+        log_action("REQUEST", details)
     except Exception:
-        # Evitar travar a requisição se falhar a auditoria
+        # Evita que falhas de auditoria quebrem a aplicação principal
         pass
 
     return response
 
 """
 MELHORIAS FUTURAS:
-1. Adicionar informações de cabeçalhos, IP de origem e User-Agent, se permitido pela política de privacidade.
-2. Integrar com outros sistemas de SIEM via streaming (ex.: Kafka, Splunk).
-3. Otimizar para não gerar logs excessivos (filtrar rotas específicas).
-4. Adicionar correlação de ID de requisição, facilitando o tracing distribuído.
+1. Adicionar IP de origem (request.client.host) e User-Agent (request.headers['user-agent']) caso seja permitido.
+2. Diferenciar logs de erros (status_code >= 400) dos demais.
+3. Integrar com tracing (OpenTelemetry) para rastreamento distribuído de requisições.
+4. Criar mecanismo de filtragem (por rota, por método) para evitar grande volume de logs irrelevantes.
 """

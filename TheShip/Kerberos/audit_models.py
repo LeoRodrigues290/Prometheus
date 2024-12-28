@@ -1,6 +1,8 @@
 """
 Arquivo: TheShip/Kerberos/audit_models.py
-Descrição: Modelos de dados para registro de auditorias.
+Descrição:
+    - Modelos de dados para registro de eventos de auditoria.
+    - Cada log registra uma ação (action), detalhes e timestamp.
 """
 
 from sqlalchemy import Column, Integer, String, DateTime
@@ -11,7 +13,10 @@ Base = declarative_base()
 
 class AuditLog(Base):
     """
-    Representa um registro de evento de auditoria no sistema.
+    Representa um registro de evento de auditoria:
+    - 'action': Nome da ação (ex.: "LOGIN", "REQUEST", etc.)
+    - 'details': Descrição da ação.
+    - 'timestamp': Data/hora do evento.
     """
     __tablename__ = "audit_logs"
 
@@ -22,8 +27,8 @@ class AuditLog(Base):
 
 """
 MELHORIAS FUTURAS:
-1. Adicionar colunas como 'user_id', 'ip_address' e 'severity' para enriquecer o log de auditoria.
-2. Implementar criptografia ou hashing em certos campos sensíveis, se necessário.
-3. Criar índices adicionais para otimizar queries de busca (por data, usuário, etc.).
-4. Possibilitar integração com sistemas SIEM (Security Information and Event Management).
+1. Adicionar colunas como user_id, ip_address, severity para enriquecer a auditoria.
+2. Criar índices adicionais para consultas de alto desempenho em grandes volumes de logs.
+3. Integrar com sistemas SIEM (Splunk, Elasticsearch, Security Onion).
+4. Implementar rotação e arquivamento de logs para reduzir tamanho do banco.
 """

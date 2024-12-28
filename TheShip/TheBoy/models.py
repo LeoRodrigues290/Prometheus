@@ -1,6 +1,8 @@
 """
 Arquivo: TheShip/TheBoy/models.py
-Descrição: Modelos de dados para o repositório seguro de dados.
+Descrição:
+    - Modelos de dados para itens armazenados no repositório seguro (Vault).
+    - Usa SQLAlchemy para mapear a tabela 'vault_items'.
 """
 
 from sqlalchemy import Column, Integer, String, DateTime
@@ -11,7 +13,10 @@ Base = declarative_base()
 
 class VaultItem(Base):
     """
-    Representa um item seguro armazenado no repositório (Boy’s Vault).
+    Representa um registro seguro armazenado no Vault:
+    - key_name (string única) para identificar o item.
+    - encrypted_value (conteúdo criptografado).
+    - created_at (timestamp de criação).
     """
     __tablename__ = "vault_items"
 
@@ -22,8 +27,8 @@ class VaultItem(Base):
 
 """
 MELHORIAS FUTURAS:
-1. Incluir campos adicionais, como 'owner_id' ou 'tenant_id', para multiusuários e controle de acesso.
-2. Adicionar versionamento do valor (ex.: histórico de alterações).
-3. Implementar índice de texto completo ou criptografia de busca (Searchable Encryption) em valores sensíveis.
-4. Criar tabela de relacionamentos para gerenciar permissões de acesso a cada 'VaultItem'.
+1. Adicionar relacionamento com User (owner_id), para controle de acesso avançado.
+2. Guardar metadados adicionais (descrição, tags de classificação, etc.).
+3. Possibilitar versionamento de itens (mantendo histórico de alterações).
+4. Incluir timestamp de atualização (updated_at) e logs de acessos no Kerberos.
 """

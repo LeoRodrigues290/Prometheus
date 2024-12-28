@@ -18,15 +18,14 @@ import bcrypt
 # Importa o modelo de usuário, com suporte a roles (admin/user), e a base declarativa
 from TheShip.TheKey.users_models import Base, User
 
-# Importa os routers dos módulos principais do sistema
+# Importa os routers dos módulos principais
 from TheShip.ThePyramid.keygen_service import router as keygen_router
 from TheShip.TheBoy.vault_service import router as vault_router
 from TheShip.Kerberos.audit_service import router as audit_router
 
-# Importa o middleware de auditoria (intercepta requisições e registra logs)
+# Importa o middleware de auditoria
 from TheShip.Kerberos.audit_middleware import audit_middleware
 
-# Cria a aplicação FastAPI com título e descrição
 app = FastAPI(
     title="Prometheus Security Suite",
     description="Sistema profissional para geração de chaves quânticas, criptografia avançada e monitoramento de acessos.",
@@ -36,22 +35,18 @@ app = FastAPI(
 # Adiciona o middleware de auditoria para registrar requisições e respostas
 app.middleware("http")(audit_middleware)
 
-# Configura detalhes de autenticação via OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
-# Chave secreta e algoritmo JWT (use variáveis de ambiente em produção)
-SECRET_KEY = "SUA_CHAVE_SECRETA"        # Substitua por algo seguro
+SECRET_KEY = "SUA_CHAVE_SECRETA"  # Em produção, usar variáveis de ambiente
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# URL de banco de dados para exemplo (SQLite local); em produção, prefira PostgreSQL ou outro SGDB
+# Configura banco de dados para autenticação
 DATABASE_URL = "sqlite:///./prometheus_users.db"
-
-# Cria o engine e a sessão do SQLAlchemy
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Garante que as tabelas (User, etc.) sejam criadas no banco de dados
+# Garante criação de tabelas (User, etc.)
 Base.metadata.create_all(bind=engine)
 
 def get_db():
@@ -66,22 +61,18 @@ def get_db():
 
 def authenticate_user(db, username: str, password: str):
     """
-    Função que valida se o usuário existe no banco e se a senha confere com o hash armazenado.
-    Retorna o objeto 'User' se ok, ou None se falhar.
+    Função que valida se o usuário existe e se a senha confere com o hash.
     """
     user = db.query(User).filter(User.username == username).first()
     if not user:
         return None
-
-    # Verifica a senha usando bcrypt
     if not bcrypt.checkpw(password.encode("utf-8"), user.hashed_password.encode("utf-8")):
         return None
-
     return user
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     """
-    Gera um token JWT com payload 'data' e tempo de expiração.
+    Gera um token JWT com payload 'data' e tempo de expiração (exp).
     """
     to_encode = data.copy()
     if expires_delta:
@@ -95,8 +86,8 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
     """
-    Endpoint de login que recebe usuário e senha (OAuth2PasswordRequestForm).
-    Se credenciais forem válidas, retorna o token JWT.
+    Endpoint de login que recebe usuário/senha (OAuth2PasswordRequestForm).
+    Retorna token JWT se credenciais forem válidas.
     """
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -114,8 +105,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
 
 def verify_token(token: str = Depends(oauth2_scheme)):
     """
-    Verifica se o token JWT recebido (via bearer) é válido.
-    Decodifica para extrair o 'username' (sub).
+    Verifica se o token JWT é válido e decodifica o 'username' (sub).
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -135,8 +125,8 @@ def verify_token(token: str = Depends(oauth2_scheme)):
 @app.get("/secure")
 def secure_endpoint(current_user: str = Depends(verify_token), db=Depends(get_db)):
     """
-    Exemplo de rota protegida que requer um token JWT válido.
-    Retorna uma mensagem de sucesso e o username do token.
+    Exemplo de rota protegida que requer token JWT válido.
+    Retorna dados do usuário, incluindo 'role'.
     """
     user_obj = db.query(User).filter(User.username == current_user).first()
     if not user_obj:
@@ -151,14 +141,11 @@ def admin_route(current_user: str = Depends(verify_token), db=Depends(get_db)):
     user_obj = db.query(User).filter(User.username == current_user).first()
     if not user_obj:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-
-    # Verifica se o usuário tem papel 'admin'
     if user_obj.role != "admin":
         raise HTTPException(status_code=403, detail="Acesso proibido para este perfil.")
-
     return {"message": f"Bem-vindo, {user_obj.username}, à rota de administração!"}
 
-# Inclui as rotas dos módulos principais do sistema
+# Inclui as rotas dos módulos Pyramid, Boy’s Vault e Kerberos
 app.include_router(keygen_router, prefix="/pyramid", tags=["Key Generation"])
 app.include_router(vault_router, prefix="/boy_vault", tags=["Data Vault"])
 app.include_router(audit_router, prefix="/kerberos", tags=["Monitoring"])
@@ -172,12 +159,12 @@ def read_root():
 
 """
 MELHORIAS FUTURAS:
-1. Criar rotas para cadastro de usuários e atualização de senha, com validações (e-mail, regras de complexidade).
-2. Implementar refresh tokens para sessões de longa duração, permitindo renovação do JWT sem refazer login.
-3. Registrar logs de login, logout e tentativas de acesso negadas no Kerberos (audit_service).
-4. Integrar com uma ferramenta de migração de banco de dados (ex.: Alembic) para versionar o esquema.
-5. Configurar variáveis de ambiente para SECRET_KEY e DATABASE_URL, evitando expor segredos no código.
-6. Adicionar rate limiting e lockout temporário para mitigar ataques de força bruta de login.
-7. Expandir o controle de roles (RBAC) ou migrar para ABAC, para granularidade mais avançada de permissões.
-8. Integrar com sistemas de SIEM e observabilidade (Prometheus, Grafana, Splunk, etc.) para monitoramento.
+1. Criar rotas para cadastro/alteração de senha de usuários, com validações de e-mail e regras de complexidade.
+2. Implementar refresh tokens para sessões de longa duração, permitindo renovação do JWT.
+3. Logar tentativas de login e logout no Kerberos (audit_service).
+4. Configurar SECRET_KEY e DATABASE_URL como variáveis de ambiente, evitando exposições no código.
+5. Adicionar rate limiting e lockout após várias tentativas de login falhas para mitigar força bruta.
+6. Migrar para um SGBD robusto (PostgreSQL, MySQL) para ambientes de produção.
+7. Expandir o controle de roles (RBAC) ou migrar para ABAC para mais granularidade de permissões.
+8. Integrar com Prometheus, Grafana ou outra ferramenta de observabilidade para métricas e alertas.
 """
