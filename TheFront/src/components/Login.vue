@@ -1,25 +1,22 @@
-<!--
-Arquivo: TheFront/src/components/Login.vue
-Descrição:
-    - Componente Vue para login de usuário.
-    - Faz requisição ao endpoint /login do back-end e obtém o token JWT.
--->
-
 <template>
-  <div class="login-container">
-    <h1>Login</h1>
-    <form @submit.prevent="handleLogin">
-      <div class="input-group">
-        <label>Usuário</label>
-        <input v-model="username" type="text" />
-      </div>
-      <div class="input-group">
-        <label>Senha</label>
-        <input v-model="password" type="password" />
-      </div>
-      <button type="submit">Entrar</button>
-    </form>
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+  <div class="flex items-center justify-center min-h-screen bg-dark-bg">
+    <div class="bg-dark-surface p-8 rounded shadow-md w-80">
+      <h2 class="text-2xl mb-4 font-semibold">Acesso ao Prometheus</h2>
+      <form @submit.prevent="handleLogin">
+        <div class="mb-4">
+          <label class="block mb-1 font-medium">Usuário</label>
+          <input v-model="username" type="text" class="w-full p-2 bg-dark-panel focus:outline-none focus:ring-2 focus:ring-dark-highlight rounded" required />
+        </div>
+        <div class="mb-4">
+          <label class="block mb-1 font-medium">Senha</label>
+          <input v-model="password" type="password" class="w-full p-2 bg-dark-panel focus:outline-none focus:ring-2 focus:ring-dark-highlight rounded" required />
+        </div>
+        <button type="submit" class="w-full bg-dark-highlight py-2 rounded mt-2 hover:bg-dark-accent transition-colors">
+          Entrar
+        </button>
+      </form>
+      <p v-if="errorMessage" class="text-red-500 mt-4">{{ errorMessage }}</p>
+    </div>
   </div>
 </template>
 
@@ -38,51 +35,29 @@ export default {
   methods: {
     async handleLogin() {
       try {
-        const response = await axios.post('http://localhost:8000/login', {
-          username: this.username,
-          password: this.password
-        }, {
-          // Formato para OAuth2PasswordRequestForm
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          params: {
-            // O FastAPI OAuth2PasswordRequestForm espera 'username' e 'password'
-            'username': this.username,
-            'password': this.password
-          }
+        const formData = new URLSearchParams()
+        formData.append('username', this.username)
+        formData.append('password', this.password)
+
+        const response = await axios.post('http://localhost:8000/login', formData, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         })
+
         const { access_token } = response.data
         localStorage.setItem('jwt_token', access_token)
-        this.$router.push('/secure-page')
-      } catch (error) {
-        this.errorMessage = 'Falha no login. Verifique usuário e senha.'
+
+        // Exemplo simples de role
+        if (this.username === 'admin') {
+          localStorage.setItem('user_role', 'admin')
+        } else {
+          localStorage.setItem('user_role', 'user')
+        }
+
+        this.$router.push('/dashboard')
+      } catch (err) {
+        this.errorMessage = 'Falha no login: verifique credenciais ou serviço indisponível.'
       }
     }
   }
 }
 </script>
-
-<style scoped>
-.login-container {
-  background-color: #222;
-  color: #fff;
-  padding: 20px;
-  border-radius: 4px;
-}
-.input-group {
-  margin-bottom: 10px;
-}
-.error {
-  color: #ff6666;
-  margin-top: 10px;
-}
-</style>
-
-<!--
-MELHORIAS FUTURAS:
-1. Substituir localStorage por cookies seguros (HttpOnly) para evitar vulnerabilidades de XSS.
-2. Adicionar validação mais detalhada de formulários (campos obrigatórios, regex, etc.).
-3. Redirecionar automaticamente para /login caso o token JWT expire.
-4. Exibir avisos personalizados (toasters, modals) em caso de erro.
--->

@@ -1,9 +1,15 @@
-<!-- Arquivo: TheFront/src/components/QuantumKeyGen.vue -->
 <template>
-  <div class="keygen-container">
-    <h2>Gerar Chave Quântica</h2>
-    <button @click="generateKey">Gerar</button>
-    <p v-if="quantumKey">Chave Gerada: {{ quantumKey }}</p>
+  <div class="flex flex-col items-center justify-center min-h-screen bg-dark-bg text-white">
+    <h2 class="text-3xl font-bold mb-4">Gerar Chave Quântica</h2>
+    <button @click="generateKey" class="bg-dark-highlight px-6 py-2 rounded hover:bg-dark-accent transition-colors">
+      Gerar Nova Chave
+    </button>
+
+    <div v-if="quantumKey" class="mt-4 bg-dark-surface p-4 rounded text-center">
+      <p class="break-all">
+        <strong>Chave Gerada:</strong> {{ quantumKey }}
+      </p>
+    </div>
   </div>
 </template>
 
@@ -20,40 +26,18 @@ export default {
   methods: {
     async generateKey() {
       try {
-        const response = await axios.get('http://localhost:8000/pyramid/generate_key')
+        const token = localStorage.getItem('jwt_token')
+        const response = await axios.get('http://localhost:8000/pyramid/generate_key', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
         this.quantumKey = response.data.quantum_key
       } catch (error) {
         console.error(error)
+        alert('Falha ao gerar chave quântica.')
       }
     }
   }
 }
 </script>
-
-<style scoped>
-.keygen-container {
-  background-color: #222;
-  padding: 20px;
-  color: #fff;
-  border-radius: 4px;
-}
-button {
-  background-color: #444;
-  color: #fff;
-  border: none;
-  padding: 10px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-button:hover {
-  background-color: #666;
-}
-</style>
-
-<!--
-MELHORIAS FUTURAS:
-1. Integrar sistema de autenticação para que apenas usuários logados possam gerar chaves.
-2. Exibir mensagens de erro detalhadas para o usuário em caso de falha no endpoint.
-3. Implementar WebSockets ou Server-Sent Events para notificar o front-end em tempo real sobre eventos do sistema.
-4. Adicionar suporte multilíngue (i18n) para internacionalizar e localizar a aplicação.
--->

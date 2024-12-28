@@ -1,0 +1,17 @@
+/*
+Arquivo: TheFront/src/index.css
+Descrição:
+  - Arquivo principal de estilos que carrega Tailwind e define temas globais.
+*/
+
+/* Tailwind base & components & utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos globais adicionais (opcional) */
+html, body {
+  font-family: 'prometheus', sans-serif;  /* fonte configurada no tailwind.config.js */
+  background-color: theme('colors.dark-bg');
+  color: #EAEAEA; /* tom claro para contraste */
+}
