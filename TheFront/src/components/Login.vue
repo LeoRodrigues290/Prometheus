@@ -5,13 +5,26 @@
       <form @submit.prevent="handleLogin">
         <div class="mb-4">
           <label class="block mb-1 font-medium">Usuário</label>
-          <input v-model="username" type="text" class="w-full p-2 bg-dark-panel focus:outline-none focus:ring-2 focus:ring-dark-highlight rounded" required />
+          <input
+            v-model="username"
+            type="text"
+            class="w-full p-2 bg-dark-panel focus:outline-none focus:ring-2 focus:ring-dark-highlight rounded"
+            required
+          />
         </div>
         <div class="mb-4">
           <label class="block mb-1 font-medium">Senha</label>
-          <input v-model="password" type="password" class="w-full p-2 bg-dark-panel focus:outline-none focus:ring-2 focus:ring-dark-highlight rounded" required />
+          <input
+            v-model="password"
+            type="password"
+            class="w-full p-2 bg-dark-panel focus:outline-none focus:ring-2 focus:ring-dark-highlight rounded"
+            required
+          />
         </div>
-        <button type="submit" class="w-full bg-dark-highlight py-2 rounded mt-2 hover:bg-dark-accent transition-colors">
+        <button
+          type="submit"
+          class="w-full bg-dark-highlight py-2 rounded mt-2 hover:bg-dark-accent transition-colors"
+        >
           Entrar
         </button>
       </form>
@@ -35,11 +48,14 @@ export default {
   methods: {
     async handleLogin() {
       try {
+        // Limpa qualquer mensagem de erro anterior
+        this.errorMessage = ''
+
         const formData = new URLSearchParams()
         formData.append('username', this.username)
         formData.append('password', this.password)
 
-        const response = await axios.post('http://localhost:8000/login', formData, {
+        const response = await axios.post('http://127.0.0.1:8000/login', formData, {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         })
 
@@ -55,9 +71,25 @@ export default {
 
         this.$router.push('/dashboard')
       } catch (err) {
-        this.errorMessage = 'Falha no login: verifique credenciais ou serviço indisponível.'
+        if (err.response && err.response.data && err.response.data.message) {
+          // Mensagem específica do backend
+          this.errorMessage = err.response.data.message
+        } else if (err.request) {
+          // Requisição foi feita, mas nenhuma resposta foi recebida
+          this.errorMessage = 'Falha no login: serviço indisponível.'
+        } else {
+          // Algo aconteceu na configuração da requisição que acionou um erro
+          this.errorMessage = 'Falha no login: erro inesperado.'
+        }
+
+        // Opcional: Logar o erro no console para depuração
+        console.error('Erro no login:', err)
       }
     }
   }
 }
 </script>
+
+<style scoped>
+/* Adicione estilos personalizados aqui, se necessário */
+</style>

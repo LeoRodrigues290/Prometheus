@@ -3,7 +3,7 @@ Arquivo: TheShip/init_db.py
 Descrição:
     - Script para inicializar/criar as tabelas no banco de dados.
     - Exemplo de criação de um usuário 'admin' com senha em hash (bcrypt).
-    - Em produção, sugere-se o uso de migrações (ex.: Alembic) em vez de scripts manuais.
+    - Em produção, recomenda-se o uso de migrações (ex.: Alembic) em vez de scripts manuais.
     - Utiliza variáveis de ambiente para configurações sensíveis.
 """
 
@@ -37,34 +37,38 @@ def init():
     - Cria as tabelas definidas na Base se ainda não existirem.
     - Cria um usuário admin com senha em hash se não existir.
     """
-    # Cria as tabelas, caso ainda não existam
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    try:
+        # Cria as tabelas, caso ainda não existam
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
 
-    # Exemplo de criação de um usuário admin
-    admin_username = "admin"
-    admin_password = "adminpass"
+        # Exemplo de criação de um usuário admin
+        admin_username = "admin"
+        admin_password = "adminpass"
 
-    # Gera o hash da senha usando bcrypt
-    hashed = bcrypt.hashpw(admin_password.encode("utf-8"), bcrypt.gensalt())
+        # Gera o hash da senha usando bcrypt
+        hashed = bcrypt.hashpw(admin_password.encode("utf-8"), bcrypt.gensalt())
 
-    # Verifica se já existe um usuário com esse username
-    existing_user = db.query(User).filter(User.username == admin_username).first()
-    if not existing_user:
-        user = User(
-            username=admin_username,
-            hashed_password=hashed.decode("utf-8"),
-            role="admin",
-            is_active=True
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        print("Usuário admin criado com sucesso!")
-    else:
-        print("Usuário admin já existe.")
+        # Verifica se já existe um usuário com esse username
+        existing_user = db.query(User).filter(User.username == admin_username).first()
+        if not existing_user:
+            user = User(
+                username=admin_username,
+                hashed_password=hashed.decode("utf-8"),
+                role="admin",
+                is_active=True
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            print("Usuário admin criado com sucesso!")
+        else:
+            print("Usuário admin já existe.")
 
-    db.close()
+    except Exception as e:
+        print(f"Erro ao inicializar o banco de dados: {e}")
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     init()
