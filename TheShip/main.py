@@ -7,6 +7,8 @@ Descrição:
     - Demonstração de controle de perfis de acesso (RBAC) em rotas específicas.
 """
 
+import logging
+import os
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -14,6 +16,14 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import bcrypt
+from dotenv import load_dotenv
+
+# Carrega as variáveis de ambiente
+load_dotenv()
+
+# Configuração básica de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Importa o modelo de usuário, com suporte a roles (admin/user), e a base declarativa
 from TheShip.TheKey.users_models import Base, User
@@ -37,12 +47,16 @@ app.middleware("http")(audit_middleware)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
-SECRET_KEY = "SUA_CHAVE_SECRETA"  # Em produção, usar variáveis de ambiente
+# Carrega as variáveis de ambiente para configuração
+SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")  # Em produção, usar variáveis de ambiente
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# Define o caminho absoluto para o banco de dados
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'prometheus_users.db')}"
+
 # Configura banco de dados para autenticação
-DATABASE_URL = "sqlite:///./prometheus_users.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -63,11 +77,15 @@ def authenticate_user(db, username: str, password: str):
     """
     Função que valida se o usuário existe e se a senha confere com o hash.
     """
+    logger.info(f"Tentando autenticar usuário: {username}")
     user = db.query(User).filter(User.username == username).first()
     if not user:
+        logger.warning(f"Usuário {username} não encontrado.")
         return None
     if not bcrypt.checkpw(password.encode("utf-8"), user.hashed_password.encode("utf-8")):
+        logger.warning(f"Senha inválida para usuário {username}.")
         return None
+    logger.info(f"Usuário {username} autenticado com sucesso.")
     return user
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
@@ -85,9 +103,10 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
-    print(f"Tentando login com username={form_data.username} e password={form_data.password}")
+    logger.info(f"Tentando login com username={form_data.username}")
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
+        logger.error(f"Falha no login para usuário {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciais inválidas.",
@@ -98,6 +117,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
         data={"sub": user.username},
         expires_delta=access_token_expires
     )
+    logger.info(f"Login bem-sucedido para usuário {user.username}")
     return {"access_token": access_token, "token_type": "bearer"}
 
 def verify_token(token: str = Depends(oauth2_scheme)):
@@ -108,12 +128,14 @@ def verify_token(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
+            logger.error("Token inválido ou sem 'sub'.")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token inválido ou sem 'sub'."
             )
         return username
     except JWTError:
+        logger.error("Token inválido ou expirado.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido ou expirado."
@@ -127,6 +149,7 @@ def secure_endpoint(current_user: str = Depends(verify_token), db=Depends(get_db
     """
     user_obj = db.query(User).filter(User.username == current_user).first()
     if not user_obj:
+        logger.error(f"Usuário {current_user} não encontrado.")
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     return {"status": "Ok", "user": user_obj.username, "role": user_obj.role}
 
@@ -137,9 +160,12 @@ def admin_route(current_user: str = Depends(verify_token), db=Depends(get_db)):
     """
     user_obj = db.query(User).filter(User.username == current_user).first()
     if not user_obj:
+        logger.error(f"Usuário {current_user} não encontrado.")
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     if user_obj.role != "admin":
+        logger.warning(f"Acesso proibido para o usuário {current_user}.")
         raise HTTPException(status_code=403, detail="Acesso proibido para este perfil.")
+    logger.info(f"Usuário {user_obj.username} acessou a rota de administração.")
     return {"message": f"Bem-vindo, {user_obj.username}, à rota de administração!"}
 
 # Inclui as rotas dos módulos Pyramid, Boy’s Vault e Kerberos
@@ -152,6 +178,7 @@ def read_root():
     """
     Rota base para checagem de disponibilidade do servidor.
     """
+    logger.info("Rota raiz acessada.")
     return {"message": "Bem-vindo ao Prometheus Security Suite"}
 
 """
@@ -165,3 +192,24 @@ MELHORIAS FUTURAS:
 7. Expandir o controle de roles (RBAC) ou migrar para ABAC para mais granularidade de permissões.
 8. Integrar com Prometheus, Grafana ou outra ferramenta de observabilidade para métricas e alertas.
 """
+
+# Manipulador global para HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.requests import Request
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.error(f"Erro HTTP {exc.status_code}: {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.detail},
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Erro de validação: {exc.errors()}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"message": "Erro de validação dos dados de entrada."},
+    )

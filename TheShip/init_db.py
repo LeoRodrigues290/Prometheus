@@ -4,22 +4,39 @@ Descrição:
     - Script para inicializar/criar as tabelas no banco de dados.
     - Exemplo de criação de um usuário 'admin' com senha em hash (bcrypt).
     - Em produção, sugere-se o uso de migrações (ex.: Alembic) em vez de scripts manuais.
+    - Utiliza variáveis de ambiente para configurações sensíveis.
 """
 
+import os
+import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import bcrypt
+from dotenv import load_dotenv
+
+# Carrega as variáveis de ambiente do arquivo .env
+load_dotenv()
+
+# Adiciona o diretório raiz do projeto ao PYTHONPATH para permitir imports absolutos
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
 
 # Importa a Base e o modelo User definidos em TheKey
 from TheShip.TheKey.users_models import Base, User
 
-# URL do banco de dados (SQLite para exemplo)
-DATABASE_URL = "sqlite:///./prometheus_users.db"
+# Obtém a URL do banco de dados a partir das variáveis de ambiente
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./prometheus_users.db")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# Cria o engine do SQLAlchemy
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init():
+    """
+    Inicializa o banco de dados:
+    - Cria as tabelas definidas na Base se ainda não existirem.
+    - Cria um usuário admin com senha em hash se não existir.
+    """
     # Cria as tabelas, caso ainda não existam
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -28,6 +45,7 @@ def init():
     admin_username = "admin"
     admin_password = "adminpass"
 
+    # Gera o hash da senha usando bcrypt
     hashed = bcrypt.hashpw(admin_password.encode("utf-8"), bcrypt.gensalt())
 
     # Verifica se já existe um usuário com esse username
